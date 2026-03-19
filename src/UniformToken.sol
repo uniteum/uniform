@@ -6,13 +6,14 @@ import {IERC20} from "ierc20/IERC20.sol";
 import {IERC20Metadata} from "ierc20/IERC20Metadata.sol";
 import {SafeERC20} from "erc20/SafeERC20.sol";
 import {IAddressLookup} from "ilookup/IAddressLookup.sol";
+import {IUniform} from "ilookup/IUniform.sol";
 import {Clones} from "clones/Clones.sol";
 
 /// @title UniformToken
 /// @notice A wrapped ERC-20 that presents the same address across every chain.
 /// @dev The underlying token is resolved from an immutable locale lookup.
 ///      The contract is its own factory: call {make} to deploy a new clone via CREATE2.
-contract UniformToken is ERC20 {
+contract UniformToken is ERC20, IUniform {
     using SafeERC20 for IERC20;
 
     /// @notice The prototype instance used as the EIP-1167 implementation.
@@ -30,41 +31,30 @@ contract UniformToken is ERC20 {
     /// @notice Emitted when uniform tokens are burned and underlying tokens are withdrawn.
     event Withdraw(address indexed account, uint256 amount);
 
-    /// @notice Emitted when a new uniform token clone is created via {make}.
-    event Made(address indexed token, IAddressLookup locale);
-
-    error Unauthorized();
-
     constructor() ERC20("Uniform Factory", "PROTOTYPE") {}
 
-    /// @notice Checks whether a uniform token for the given locale has already been deployed.
-    /// @param locale_ The locale lookup for the underlying token.
-    /// @return deployed `true` if the clone already exists.
-    /// @return home    The deterministic address of the clone.
-    /// @return salt    The CREATE2 salt derived from the locale.
+    /// @inheritdoc IUniform
     function made(IAddressLookup locale_)
         public
         view
-        returns (bool deployed, address home, bytes32 salt)
+        returns (bool exists, address home, bytes32 salt)
     {
         salt = keccak256(abi.encode(locale_));
         home = Clones.predictDeterministicAddress(PROTOTYPE, salt, PROTOTYPE);
-        deployed = home.code.length > 0;
+        exists = home.code.length > 0;
     }
 
-    /// @notice Deploys a new uniform token clone (or returns the existing one).
-    /// @param locale_ The locale lookup for the underlying token.
-    /// @return token  The address of the (possibly pre-existing) uniform token.
-    function make(IAddressLookup locale_) external returns (UniformToken token) {
-        (bool deployed, address home, bytes32 salt) = made(locale_);
-        token = UniformToken(home);
-        if (!deployed) {
+    /// @inheritdoc IUniform
+    function make(IAddressLookup locale_) external returns (address token) {
+        (bool exists, address home, bytes32 salt) = made(locale_);
+        token = home;
+        if (!exists) {
             Clones.cloneDeterministic(PROTOTYPE, salt, 0);
             UniformToken(home).zzInit(locale_);
         }
     }
 
-    /// @notice Initialiser called by the prototype on a freshly deployed clone.
+    /// @notice Initialiser called by the prototype on a freshly exists clone.
     /// @dev Reverts with {Unauthorized} if called by any address other than the prototype.
     function zzInit(IAddressLookup locale_) public {
         if (msg.sender != PROTOTYPE) revert Unauthorized();
