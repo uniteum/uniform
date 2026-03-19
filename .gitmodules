@@ -1,3 +1,6 @@
+[submodule "lib/forge-std"]
+	path = lib/forge-std
+	url = git@github.com:foundry-rs/forge-std.git
 [submodule "config"]
 	path = config
 	url = git@github.com:uniteum/config.git
@@ -7,3 +10,9 @@
 [submodule "lib/ierc20"]
 	path = lib/ierc20
 	url = git@github.com:uniteum/ierc20.git
+[submodule "lib/erc20"]
+	path = lib/erc20
+	url = git@github.com:uniteum/erc20.git
+[submodule "lib/clones"]
+	path = lib/clones
+	url = git@github.com:uniteum/clones.git
