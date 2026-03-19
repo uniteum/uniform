@@ -3,3 +3,4 @@ ilookup/=lib/ilookup/
 ierc20/=lib/ierc20/
 erc20/=lib/erc20/
 clones/=lib/clones/
+reentrancy/=lib/reentrancy/

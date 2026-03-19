@@ -7,12 +7,13 @@ import {SafeERC20} from "erc20/SafeERC20.sol";
 import {IAddressLookup} from "ilookup/IAddressLookup.sol";
 import {IUniform} from "ilookup/IUniform.sol";
 import {Clones} from "clones/Clones.sol";
+import {ReentrancyGuardTransient} from "reentrancy/ReentrancyGuardTransient.sol";
 
 /// @title UniformToken
 /// @notice A wrapped ERC-20 that presents the same address across every chain.
 /// @dev The underlying token is resolved from an immutable locale lookup.
 ///      The contract is its own factory: call {make} to deploy a new clone via CREATE2.
-contract UniformToken is ERC20, IUniform {
+contract UniformToken is ERC20, IUniform, ReentrancyGuardTransient {
     using SafeERC20 for IERC20Metadata;
 
     /// @notice The prototype instance used as the EIP-1167 implementation.
@@ -73,16 +74,16 @@ contract UniformToken is ERC20, IUniform {
 
     /// @notice Deposit underlying tokens and mint an equal amount of uniform tokens.
     /// @param amount The amount to deposit.
-    function deposit(uint256 amount) external {
+    function deposit(uint256 amount) external nonReentrant {
         address sender = _msgSender();
-        underlying.safeTransferFrom(sender, address(this), amount);
         _mint(sender, amount);
+        underlying.safeTransferFrom(sender, address(this), amount);
         emit Deposit(sender, amount);
     }
 
     /// @notice Burn uniform tokens and withdraw an equal amount of underlying tokens.
     /// @param amount The amount to withdraw.
-    function withdraw(uint256 amount) external {
+    function withdraw(uint256 amount) external nonReentrant {
         address sender = _msgSender();
         _burn(sender, amount);
         underlying.safeTransfer(sender, amount);
